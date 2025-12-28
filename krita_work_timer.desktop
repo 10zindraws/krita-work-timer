@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=Krita/PythonPlugin
+X-KDE-Library=krita_work_timer
+X-Python-2-Compatible=false
+X-Krita-Manual=Manual.html
+Name=Work Timer
+Comment=Track work time per .kra file with cognitive work detection

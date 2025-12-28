@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Work Timer – Krita Plugin Manual</title>
+
+    <style>
+        /* ---- Qt-safe base ---- */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        /* ---- White background container (CRITICAL) ---- */
+        .page {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 30px;
+            color: #2c3e50;
+        }
+
+        h3 {
+            font-size: 15px;
+            margin-top: 20px;
+        }
+
+        p {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        ul {
+            margin: 8px 0 8px 20px;
+        }
+
+        li {
+            margin: 6px 0;
+            line-height: 1.5;
+        }
+
+        code {
+            padding: 2px 5px;
+            border: 1px solid #dddddd;
+            font-family: Consolas, monospace;
+        }
+
+        /* ---- Info boxes ---- */
+        .box {
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 6px;
+        }
+
+        .feature {
+            border: 1px solid #bcdff7;
+        }
+
+        .note {
+            border: 1px solid #ffeeba;
+        }
+
+        .tip {
+            border: 1px solid #c3e6cb;
+        }
+
+        .technical {
+            border: 1px solid #d6d8db;
+            font-size: 13px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            border-top: 1px solid #cccccc;
+            padding-top: 10px;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin: 12px 0;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #dddddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+
+<body>
+<div class="page">
+
+    <h1>Work Timer Plugin</h1>
+
+    <p>
+        A smart work time tracker for Krita that measures your document's actual working time by including time spent 
+		thinking/researching via user feedback.
+    </p>
+	
+    <h3>Why not just look at Document Information?</h3>
+	
+	<p>
+		Only Krita's .kra file type supports "Total editing time" tracking and simply tracking brushstrokes is not an accurate
+		way to measure time spent on creative work anyways. When working on a project, you may be planning, researching,
+		or gathering references while the file is open. A typical time tracker cannot account for this, because it only measures
+		direct activity. This plugin addresses that limitation by asking you whether periods of inactivity should count as idle 
+		time or as productive thinking and research time. The more you respond to its prompts, the more the plugin learns 
+		from your choices and reduces how often it prompts you.
+    </p>
+
+    <h3>Plugin Features</h3>
+    <ul>
+        <li>Automatically tracks time spent actively working on your document</li>
+        <li>Accounts for time away from the file (thinking, planning, researching) through simple user prompts</li>
+        <li>Learns from your responses to reduce interruptions over time</li>
+		<li>Tracks time before a file is even saved (don't have to save files to start tracking time)</li>
+		<li>Saves work time per file and restores it when reopening</li>
+		<li>Preserves tracked time when image files are moved or renamed</li>
+		<li>Imports existing editing time from Krita .kra files</li>
+		<li>Works in the background without requiring the docker to stay open</li>
+    </ul>
+
+    <!-- ==================== HOW IT WORKS ==================== -->
+    <h2>How It Works</h2>
+
+    <h3>Automatic Tracking</h3>
+    <p>
+        When you draw, edit, or navigate your canvas, the timer counts. When you stop
+        interacting, it pauses (after a short buffer) to avoid counting breaks. You don't need to 
+        have the "Work Timer" docker open since the plugin is also an extension. If the plugin is 
+		enabled, it will automatically track your document work time.
+    </p>
+
+    <h3>What Gets Tracked</h3>
+    <ul>
+        <li>Mouse clicks and drags on canvas</li>
+        <li>Keyboard shortcuts and input</li>
+        <li>Pen and tablet strokes</li>
+        <li>Canvas navigation (zoom, pan)</li>
+    </ul>
+
+    <h3>Timer States</h3>
+    <table>
+        <tr><th>State</th><th>Meaning</th></tr>
+        <tr><td><strong>Tracking</strong></td><td>Actively counting work time (saved file)</td></tr>
+        <tr><td><strong>Tracking (unsaved)</strong></td><td>Counting work time for an unsaved file</td></tr>
+        <tr><td><strong>Paused</strong></td><td>No activity detected, timer paused</td></tr>
+        <tr><td><strong>No document</strong></td><td>No document is open</td></tr>
+    </table>
+
+    <div class="box feature">
+        <p>
+            <strong>Unsaved Document Tracking:</strong> The timer tracks your work even before 
+            you save. When you save the document, all accumulated time is automatically 
+            transferred to the saved file. If you close without saving, the time is discarded.
+        </p>
+    </div>
+
+    <!-- ==================== TIME PERSISTENCE ==================== -->
+    <h2>Tracked Time Persistence</h2>
+
+    <h3>Per-File Time Tracking</h3>
+    <p>
+        Your work time is saved for each individual file and persists across sessions. 
+        When you reopen a file, your accumulated work time is automatically restored.
+    </p>
+
+    <h3>How Files Are Identified</h3>
+    <table>
+        <tr><th>File Type</th><th>Identification Method</th><th>Survives</th></tr>
+        <tr>
+            <td><strong>.kra</strong></td>
+            <td>Document UUID (embedded in file)</td>
+            <td>Renames, moves, and copies</td>
+        </tr>
+        <tr>
+            <td><strong>.png, .jpg, .psd, etc.</strong></td>
+            <td>Content fingerprint + path</td>
+            <td>Moves, renames (if content unchanged)</td>
+        </tr>
+    </table>
+
+    <h3>Move Detection for Image Files</h3>
+    <p>
+        When you move or rename a .png, .jpg, or other image file, the plugin can detect 
+        this and preserve your work time. It creates a "content fingerprint" based on:
+    </p>
+    <ul>
+        <li>Image dimensions (width × height)</li>
+        <li>File size</li>
+        <li>A sample of the image content</li>
+    </ul>
+    <p>
+        When you open a file at a new location, the plugin checks if it matches a 
+        previously tracked file and automatically migrates your work time.
+    </p>
+
+    <div class="box note">
+        <p>
+            <strong>Note:</strong> Move detection works as long as you haven't edited the file 
+            since the last save. If you edit and save the file after moving it, the fingerprint 
+            will change and the connection to the old record may be lost.
+        </p>
+    </div>
+
+    <h3>Importing Time from Krita Files</h3>
+    <p>
+        When you open a *.kra* file for the first time with the plugin, it reads the file's built-in 
+        "Total editing time" metadata. If this time exceeds 1 minute, then that time is used as a 
+        starting point after being adjusted slightly upward to account for thinking time between 
+        brushstrokes.
+    </p>
+
+    <div class="box technical">
+        <p>
+            <strong>Technical Note:</strong> The adjustment uses a logarithmic formula that applies 
+            a higher multiplier to short sessions (~1.4x for 2-minute sessions) and a lower 
+            multiplier to long sessions (~1.2x for 2-hour sessions). This accounts for the fact 
+            that planning and thinking are proportionally higher at the start of a project.
+        </p>
+    </div>
+
+    <!-- ==================== THINKING DETECTION ==================== -->
+    <h2>User Feedback and Prediction</h2>
+
+    <h3>The Prompt Dialog</h3>
+    <p>
+        When you return after a pause, the plugin may ask you to state if you were thinking about your project. The dialog shows:
+    </p>
+    <ul>
+        <li>How long you were away</li>
+        <li>The system's confidence level (how sure it is)</li>
+    </ul>
+
+
+    <h3>Auto-Decisions &amp; Undo</h3>
+    <p>
+        When the plugin is confident, it may auto-add or auto-discard time. You'll see a 
+        brief notification with an <strong>Undo</strong> button if you disagree.
+    </p>
+
+    <h3>Accuracy Indicator</h3>
+    <p>
+        The docker shows an accuracy indicator that reflects how well the plugin 
+        understands your work patterns:
+    </p>
+    <table>
+        <tr><th>Level</th><th>Meaning</th></tr>
+        <tr><td><strong>Learning</strong></td><td>Still gathering data (prompts more often)</td></tr>
+        <tr><td><strong>Medium</strong></td><td>Developing understanding of your patterns</td></tr>
+        <tr><td><strong>High</strong></td><td>Confident in your patterns (fewer prompts)</td></tr>
+    </table>
+    <p>
+        The indicator is visible if you right click the "Work Timer" docker
+    </p>
+
+    <h2>Data Storage</h2>
+    
+    <p>All tracked data is stored at:</p>
+	<p><strong>Windows:</strong> <code>%userprofile%\AppData\Roaming\Krita\work_timer_data</code></p>
+	<p><strong>Linux:</strong> <code>~/.local/share/krita/work_timer_data</code></p>
+    <p>This file contains:</p>
+    <ul>
+        <li>Work time for each tracked file</li>
+        <li>Your learning profile (patterns the plugin has learned)</li>
+    </ul>
+
+    <h2>Tips</h2>
+ 
+    <div class="box tip">
+        <ul>
+			<li>You can press <strong>Y</strong> to reply yes, or <strong>N</strong> / <strong>Esc</strong> to reply no to the prompt dialog.</li>
+            <li>Answer prompts honestly to improve the tracker's accuracy</li>
+            <li>To preserve your work time for non .kra files, don't edit *and* rename between times you open them in Krita</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p>Work Timer Plugin for Krita – Smart time tracking for artists</p>
+    </div>
+
+</div>
+</body>
+</html>

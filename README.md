@@ -110,10 +110,11 @@ When you return after a pause, the plugin may ask you to state if you were think
 
 - How long you were away  
 - The system's confidence level (how sure it is)
+- Option to respond Yes or No
 
 ### Auto-Decisions & Undo
 
-When the plugin is confident, it may auto-add or auto-discard time. You'll see a brief notification with an **Undo** button if you disagree.
+When the plugin is confident about its assumption of the nature of your idle time, it may auto-add or auto-discard time. You'll see a brief notification with an **Undo** button if you disagree.
 
 ### Accuracy Indicator
 
