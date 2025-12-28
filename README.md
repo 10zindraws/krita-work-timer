@@ -108,6 +108,8 @@ The adjustment uses a logarithmic formula that applies a higher multiplier to sh
 
 When you return after a pause, the plugin may ask you to state if you were thinking about your project. The dialog shows:
 
+<img width="341" height="161" alt="2025-12-28 10-48-19" src="https://github.com/user-attachments/assets/520ed679-be66-48aa-baed-6738e1fa8192" />
+
 - How long you were away  
 - The system's confidence level (how sure it is)
 - Option to respond Yes or No
@@ -115,6 +117,9 @@ When you return after a pause, the plugin may ask you to state if you were think
 ### Auto-Decisions & Undo
 
 When the plugin is confident about its assumption of the nature of your idle time, it may auto-add or auto-discard time. You'll see a brief notification with an **Undo** button if you disagree.
+
+<img width="281" height="41" alt="2025-12-28 10-48-40" src="https://github.com/user-attachments/assets/3d77a81a-2d96-46a3-af44-95159e90514b" />
+
 
 ### Accuracy Indicator
 
@@ -127,6 +132,8 @@ The docker shows an accuracy indicator that reflects how well the plugin underst
 | **High**     | Confident in your patterns (fewer prompts)     |
 
 *The indicator is visible if you right click the **Work Timer** docker.*
+
+<img width="318" height="223" alt="2025-12-28 10-51-16" src="https://github.com/user-attachments/assets/a5afb440-f92f-456e-8244-02a9466b869d" />
 
 
 ## Data Storage
