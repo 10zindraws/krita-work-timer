@@ -139,7 +139,7 @@ The docker shows an accuracy indicator that reflects how well the plugin underst
 
 <img width="342" height="154" alt="2025-12-31 00-13-50" src="https://github.com/user-attachments/assets/51724ca2-6269-4fc4-ab14-3883305e27c4" />
 
-Under the accuracy indicator there an option to reset your work time for the currently opened file. While a `.kra` file is open, the time is reset to the adjusted total editing time, not 0. Any other file’s work time will be reset to 0 when the reset is confirmed.
+Under the accuracy indicator there is an option to reset your work time for the currently opened file. While a `.kra` file is open, the time is reset to the adjusted total editing time, not 0. Any other file’s work time will be reset to 0 when the reset is confirmed.
 **From previous example:** The work time for the `.kra` painting will always be reset to 5 hrs 21 when Reset Tracked Time is clicked.
 
 ## Data Storage
