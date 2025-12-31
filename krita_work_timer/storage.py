@@ -440,6 +440,28 @@ class WorkTimerStorage:
         self.set_work_time(file_hash, new_total, filename)
         return new_total
     
+    def reset_work_time(self, file_hash: str, reset_to_seconds: int = 0) -> bool:
+        """Reset work time for a file hash.
+        
+        Args:
+            file_hash: The path-based hash identifier
+            reset_to_seconds: The time to reset to (default 0, but can be set
+                              to embedded editing time for .kra files)
+            
+        Returns:
+            True if the reset was successful, False if the hash was not found
+        """
+        if file_hash in self._data["files"]:
+            self._data["files"][file_hash]["total_seconds"] = reset_to_seconds
+            self._data["files"][file_hash]["last_accessed"] = datetime.now().isoformat()
+            self._save()
+            if reset_to_seconds > 0:
+                print(f"WorkTimer: Reset tracked time to {reset_to_seconds // 60} mins for file hash {file_hash[:8]}...")
+            else:
+                print(f"WorkTimer: Reset tracked time to 0 for file hash {file_hash[:8]}...")
+            return True
+        return False
+    
     def find_by_content_fingerprint(self, fingerprint: str) -> Optional[Tuple[str, Dict[str, Any]]]:
         """
         Find a file record by its content fingerprint.

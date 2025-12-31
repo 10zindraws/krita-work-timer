@@ -293,8 +293,21 @@ class WorkTimerExtension(Extension):
                     else:
                         print(f"WorkTimer: No matching fingerprint found in storage. This appears to be a new file.")
             
-            if existing_time == 0:
-                # No stored time - check if file has embedded editing time
+            # For .kra files, always check if saved time is less than adjusted Krita metadata time
+            # This handles cases where time was reset but the file still has embedded editing time
+            if file_path.lower().endswith(('.kra', '.ora', '.krz')):
+                initial_time, source = WorkTimerStorage.get_file_initial_time(file_path)
+                
+                if source == "krita_metadata" and initial_time > 0:
+                    if existing_time < initial_time:
+                        # Saved time is less than adjusted Krita metadata - update to metadata time
+                        existing_time = initial_time
+                        content_fingerprint = WorkTimerStorage.compute_content_fingerprint(file_path)
+                        self._storage.set_work_time(new_hash, existing_time, filename, 
+                                                    file_path, content_fingerprint or "")
+                        print(f"WorkTimer: Updated from Krita metadata (was less than embedded time): {existing_time // 60} mins")
+            elif existing_time == 0:
+                # Non-.kra file with no stored time - check if file has embedded editing time
                 initial_time, source = WorkTimerStorage.get_file_initial_time(file_path)
                 
                 if source == "krita_metadata" and initial_time > 0:
@@ -545,6 +558,48 @@ class WorkTimerExtension(Extension):
     def _save_cognitive_profile(self) -> None:
         """Save cognitive profile to storage."""
         self._storage.set_cognitive_profile_data(self._cognitive_profile.to_dict())
+    
+    def reset_current_document_time(self) -> bool:
+        """
+        Reset the tracked time for the currently opened document.
+        
+        For .kra/.ora/.krz files: Resets to the adjusted embedded editing time
+        (the minimum known work time from Krita's metadata).
+        
+        For other files and unsaved documents: Resets to 0.
+        
+        Returns:
+            True if the reset was successful, False otherwise
+        """
+        if not self._current_doc_id:
+            print("WorkTimer: No document currently open to reset")
+            return False
+        
+        if self._current_doc_id.startswith("unsaved:"):
+            # Unsaved document - reset in-memory time to 0
+            if self._current_doc_id in self._unsaved_doc_times:
+                del self._unsaved_doc_times[self._current_doc_id]
+            self._timer_manager.set_total_seconds(0)
+            print(f"WorkTimer: Reset tracked time for unsaved document")
+            return True
+        else:
+            # Saved document - reset in persistent storage
+            if self._current_file_hash and self._current_file_path:
+                # For .kra files, reset to the adjusted embedded editing time
+                reset_to_time = 0
+                if self._current_file_path.lower().endswith(('.kra', '.ora', '.krz')):
+                    initial_time, source = WorkTimerStorage.get_file_initial_time(self._current_file_path)
+                    if source == "krita_metadata" and initial_time > 0:
+                        reset_to_time = initial_time
+                        print(f"WorkTimer: Resetting .kra file to embedded editing time: {reset_to_time // 60} mins")
+                
+                success = self._storage.reset_work_time(self._current_file_hash, reset_to_time)
+                if success:
+                    self._timer_manager.set_total_seconds(reset_to_time)
+                return success
+            else:
+                print("WorkTimer: Could not find file hash for current document")
+                return False
     
     def shutdown(self) -> None:
         """Clean up when plugin is disabled or Krita closes."""

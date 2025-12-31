@@ -5,30 +5,151 @@ UI display widget - tracking logic is in the Extension
 
 from typing import Optional
 
-from krita import DockWidget
+from krita import DockWidget, Krita
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSlot, QEvent, QPoint
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QDialog,
-    QSizePolicy, QSpacerItem, QApplication
+    QSizePolicy, QSpacerItem, QApplication, QPushButton
 )
 from PyQt5.QtGui import QFont, QWheelEvent, QMouseEvent
 
 from .timer_manager import TimerState
 
 
+class ResetTimeConfirmDialog(QDialog):
+    """
+    Confirmation dialog for resetting tracked time.
+    Shows a warning icon and asks the user to confirm the irreversible action.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Reset Tracked Time")
+        self.setWindowFlags(
+            Qt.Dialog | 
+            Qt.WindowTitleHint | 
+            Qt.WindowCloseButtonHint
+        )
+        self.setModal(True)
+        
+        self._setup_ui()
+        self._apply_styles()
+    
+    def _setup_ui(self) -> None:
+        """Set up the dialog UI."""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        
+        # Warning message container with icon
+        warning_container = QWidget()
+        warning_layout = QHBoxLayout(warning_container)
+        warning_layout.setContentsMargins(0, 0, 0, 0)
+        warning_layout.setSpacing(12)
+        
+        # Warning icon from Krita's icon library
+        icon_label = QLabel()
+        icon_label.setObjectName("warningIcon")
+        try:
+            warning_icon = Krita.instance().icon("dialog-warning")
+            icon_label.setPixmap(warning_icon.pixmap(32, 32))
+        except Exception:
+            # Fallback to text if icon not available
+            icon_label.setText("⚠")
+            icon_label.setStyleSheet("font-size: 24px; color: #f39c12;")
+        icon_label.setFixedSize(32, 32)
+        warning_layout.addWidget(icon_label)
+        
+        # Warning text
+        warning_text = QLabel("You will not be able to undo this, are you sure?")
+        warning_text.setObjectName("warningText")
+        warning_text.setWordWrap(True)
+        warning_font = QFont()
+        warning_font.setPointSize(10)
+        warning_text.setFont(warning_font)
+        warning_layout.addWidget(warning_text, 1)
+        
+        layout.addWidget(warning_container)
+        
+        # Button container
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(12)
+        button_layout.addStretch()
+        
+        # Yes button
+        self._yes_button = QPushButton("Yes")
+        self._yes_button.setObjectName("yesButton")
+        self._yes_button.setMinimumWidth(80)
+        self._yes_button.setMinimumHeight(32)
+        self._yes_button.setCursor(Qt.PointingHandCursor)
+        self._yes_button.clicked.connect(self.accept)
+        button_layout.addWidget(self._yes_button)
+        
+        # No button
+        self._no_button = QPushButton("No")
+        self._no_button.setObjectName("noButton")
+        self._no_button.setMinimumWidth(80)
+        self._no_button.setMinimumHeight(32)
+        self._no_button.setCursor(Qt.PointingHandCursor)
+        self._no_button.clicked.connect(self.reject)
+        button_layout.addWidget(self._no_button)
+        
+        layout.addWidget(button_container)
+        
+        # Set a reasonable fixed width
+        self.setFixedWidth(340)
+    
+    def _apply_styles(self) -> None:
+        """Apply styling to match Krita's palette."""
+        style = """
+            ResetTimeConfirmDialog {
+                background-color: palette(window);
+            }
+            
+            #warningText {
+                color: palette(text);
+            }
+            
+            #yesButton, #noButton {
+                padding: 6px 16px;
+                border: 1px solid palette(mid);
+                border-radius: 4px;
+                background-color: palette(button);
+                color: palette(buttonText);
+            }
+            
+            #yesButton:hover, #noButton:hover {
+                background-color: palette(light);
+            }
+            
+            #yesButton:pressed, #noButton:pressed {
+                background-color: palette(dark);
+            }
+        """
+        self.setStyleSheet(style)
+
+
 class AccuracyDialog(QDialog):
     """
     Dialog that shows accuracy/confidence info when user right-clicks the docker.
     Closes when clicking anywhere outside the dialog.
+    Also provides a Reset Tracked Time button.
     """
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, reset_callback=None):
         super().__init__(parent, Qt.Popup | Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, False)
         self.setModal(False)
         
+        self._reset_callback = reset_callback
         self._setup_ui()
+    
+    def set_reset_callback(self, callback) -> None:
+        """Set the callback function for reset time action."""
+        self._reset_callback = callback
     
     def _setup_ui(self) -> None:
         """Set up the dialog UI."""
@@ -72,8 +193,26 @@ class AccuracyDialog(QDialog):
         
         layout.addWidget(accuracy_container)
         
+        # Reset Tracked Time button
+        self._reset_button = QPushButton("Reset Tracked Time")
+        self._reset_button.setObjectName("resetButton")
+        self._reset_button.setCursor(Qt.PointingHandCursor)
+        reset_font = QFont()
+        reset_font.setPointSize(8)
+        self._reset_button.setFont(reset_font)
+        self._reset_button.setMinimumHeight(28)
+        self._reset_button.clicked.connect(self._on_reset_clicked)
+        layout.addWidget(self._reset_button)
+        
         # Apply styling
         self._apply_styles()
+    
+    def _on_reset_clicked(self) -> None:
+        """Handle reset button click."""
+        self.hide()  # Close this popup first
+        
+        if self._reset_callback:
+            self._reset_callback()
     
     def _apply_styles(self) -> None:
         """Apply styling to the dialog."""
@@ -103,6 +242,24 @@ class AccuracyDialog(QDialog):
             #accuracyValue {
                 color: palette(text);
                 background: transparent;
+            }
+            
+            #resetButton {
+                background-color: palette(button);
+                border: 1px solid palette(mid);
+                border-radius: 4px;
+                padding: 4px 8px;
+                color: palette(buttonText);
+                margin-top: 4px;
+            }
+            
+            #resetButton:hover {
+                background-color: palette(light);
+                border-color: palette(dark);
+            }
+            
+            #resetButton:pressed {
+                background-color: palette(dark);
             }
         """
         self.setStyleSheet(style)
@@ -296,7 +453,7 @@ class WorkTimerDocker(DockWidget):
     def _show_accuracy_dialog(self, pos) -> None:
         """Show the accuracy dialog at the right-click position."""
         if not self._accuracy_dialog:
-            self._accuracy_dialog = AccuracyDialog(self)
+            self._accuracy_dialog = AccuracyDialog(self, reset_callback=self._show_reset_confirmation)
         
         # Update accuracy info
         if self._extension:
@@ -306,6 +463,23 @@ class WorkTimerDocker(DockWidget):
         # Show at cursor position
         global_pos = self.widget().mapToGlobal(pos)
         self._accuracy_dialog.showAt(global_pos)
+    
+    def _show_reset_confirmation(self) -> None:
+        """Show the reset time confirmation dialog."""
+        if not self._extension:
+            return
+        
+        # Check if there's a document open
+        if not self._extension._current_doc_id:
+            return
+        
+        # Show confirmation dialog
+        confirm_dialog = ResetTimeConfirmDialog(self)
+        result = confirm_dialog.exec_()
+        
+        if result == QDialog.Accepted:
+            # User clicked Yes - reset the tracked time
+            self._extension.reset_current_document_time()
     
     def _adjust_layout_for_size(self) -> None:
         """Adjust layout elements based on current docker size."""
