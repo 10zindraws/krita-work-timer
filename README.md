@@ -133,8 +133,14 @@ The docker shows an accuracy indicator that reflects how well the plugin underst
 
 *The indicator is visible if you right click the **Work Timer** docker.*
 
-<img width="318" height="223" alt="2025-12-28 10-51-16" src="https://github.com/user-attachments/assets/a5afb440-f92f-456e-8244-02a9466b869d" />
+<img width="254" height="235" alt="2025-12-30 23-55-06" src="https://github.com/user-attachments/assets/3028a3cd-e0bf-493f-8ef2-bb37c13f5c3b" />
 
+### Reset Tracked Time (v1.0.1)
+
+<img width="342" height="154" alt="2025-12-31 00-13-50" src="https://github.com/user-attachments/assets/51724ca2-6269-4fc4-ab14-3883305e27c4" />
+
+Under the accuracy indicator there an option to reset your work time for the currently opened file. While a `.kra` file is open, the time is reset to the adjusted total editing time, not 0. Any other file’s work time will be reset to 0 when the reset is confirmed.
+**From previous example:** The work time for the `.kra` painting will always be reset to 5 hrs 21 when Reset Tracked Time is clicked.
 
 ## Data Storage
 
@@ -143,7 +149,7 @@ All tracked data is stored at: <br>
  **Windows:** `%userprofile%\AppData\Roaming\Krita\work_timer_data`  <br>
  **Linux:** `~/.local/share/krita/work_timer_data` <br>
 
-This file contains:
+The `.json` file in that folder contains:
 
 - Work time for each tracked file  
 - Your learning profile (patterns the plugin has learned)  
